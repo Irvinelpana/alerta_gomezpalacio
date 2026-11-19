@@ -16,5 +16,8 @@
     "durango"
   ],
   "author": "Irvin",
-  "license": "ISC"
+  "license": "ISC",
+  "engines": {
+    "node": ">=22.5.0"
+  }
 }
