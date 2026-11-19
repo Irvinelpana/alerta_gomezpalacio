@@ -385,3 +385,13 @@ const MapApp = {
   }
 };
 
+// Automatic responsive map resize listener on phone rotation or viewport changes
+window.addEventListener('resize', () => {
+  if (MapApp.map) MapApp.map.invalidateSize();
+});
+if (window.visualViewport) {
+  window.visualViewport.addEventListener('resize', () => {
+    if (MapApp.map) MapApp.map.invalidateSize();
+  });
+}
+
