@@ -1,0 +1,20 @@
+{
+  "name": "alertas-gomez-palacio",
+  "version": "1.0.0",
+  "description": "Sistema de Mapeo Ciudadano y Gestión de Alertas para Gómez Palacio, Dgo.",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node --watch server.js"
+  },
+  "keywords": [
+    "gomez-palacio",
+    "alertas",
+    "mapeo",
+    "ciudadano",
+    "leaflet",
+    "durango"
+  ],
+  "author": "Irvin",
+  "license": "ISC"
+}

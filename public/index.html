@@ -1,0 +1,927 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+  <title>Alerta Gómez Palacio | Mapeo y Reportes Ciudadanos</title>
+  
+  <!-- Tailwind CSS -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          colors: {
+            gp: {
+              primary: '#851b2d',   // Guinda representativo de Durango / Gómez Palacio
+              dark: '#5e101e',
+              light: '#b02a40',
+              accent: '#d97706',    // Ámbar
+              surface: '#f8fafc',
+            }
+          }
+        }
+      }
+    }
+  </script>
+
+  <!-- Leaflet CSS & JS -->
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin=""/>
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+
+  <!-- Lucide Icons -->
+  <script src="https://unpkg.com/lucide@latest"></script>
+
+  <!-- Canvas Confetti -->
+  <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.9.2/dist/confetti.browser.min.js"></script>
+
+  <!-- Custom styles -->
+  <link rel="stylesheet" href="/css/styles.css">
+</head>
+<body class="bg-slate-950 text-slate-800 font-sans antialiased h-screen w-screen overflow-hidden flex flex-col">
+
+  <!-- ============================================================== -->
+  <!-- 1. FULL-SCREEN LOGIN / PORTAL SCREEN (CIUDADANO VS ADMIN)      -->
+  <!-- ============================================================== -->
+  <div id="view-login-screen" style="background-color: #0b1120;" class="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6 overflow-y-auto">
+    <div class="w-full max-w-4xl my-auto py-6">
+      
+      <!-- Logo & City Emblem Header -->
+      <div class="text-center mb-6 sm:mb-8 text-white">
+        <div class="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-rose-950/80 border border-amber-400/40 text-amber-300 shadow-2xl mb-3">
+          <i data-lucide="map-pin" class="w-9 h-9"></i>
+        </div>
+        <div class="flex items-center justify-center space-x-2">
+          <h1 class="text-2xl sm:text-4xl font-black tracking-tight text-white">Alerta Gómez Palacio</h1>
+          <span class="bg-amber-400 text-slate-950 font-extrabold text-xs uppercase px-2 py-0.5 rounded-md">Dgo.</span>
+        </div>
+        <p class="text-rose-200 text-xs sm:text-sm mt-1 max-w-md mx-auto">
+          Sistema de Mapeo Urbano y Gestión de Alertas Comunitarias
+        </p>
+        <p class="text-slate-400 text-xs sm:text-sm mt-3 font-medium">Selecciona cómo deseas ingresar a la plataforma:</p>
+      </div>
+
+      <!-- 2 Roles Options: Ciudadano vs Admin -->
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-5 sm:gap-6">
+        
+        <!-- CARD 1: CIUDADANO (Acceso Libre) -->
+        <div class="bg-slate-900 border border-slate-800 hover:border-emerald-500/50 rounded-3xl p-6 sm:p-8 shadow-2xl flex flex-col justify-between transition-all">
+          <div>
+            <div class="flex items-center justify-between mb-4">
+              <span class="w-12 h-12 rounded-2xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 flex items-center justify-center text-2xl shadow-inner">
+                🏙️
+              </span>
+              <span class="bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 text-[10px] font-black uppercase px-2.5 py-1 rounded-full tracking-wider">
+                Acceso Libre
+              </span>
+            </div>
+
+            <h2 class="text-xl sm:text-2xl font-black text-white">Soy Ciudadano</h2>
+            <p class="text-xs sm:text-sm text-slate-300 mt-2 leading-relaxed">
+              Explora en el mapa todas las alertas activas en Gómez Palacio (baches, fugas de agua, falta de luz, basura) y envía reportes ciudadanos en tiempo real <strong>sin necesidad de registro</strong>.
+            </p>
+
+            <ul class="mt-4 space-y-2 text-xs text-slate-400">
+              <li class="flex items-center space-x-2">
+                <span class="text-emerald-400 font-bold">✓</span>
+                <span>Ver mapa interactivo y satelital con alertas</span>
+              </li>
+              <li class="flex items-center space-x-2">
+                <span class="text-emerald-400 font-bold">✓</span>
+                <span>Enviar alertas con fotografía y ubicación GPS</span>
+              </li>
+              <li class="flex items-center space-x-2">
+                <span class="text-emerald-400 font-bold">✓</span>
+                <span>Consultar el estatus de las alertas en tu colonia</span>
+              </li>
+            </ul>
+          </div>
+
+          <div class="mt-6 pt-4 border-t border-slate-800">
+            <button onclick="App.loginAsCitizen()" class="w-full py-3.5 px-4 bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-600 hover:to-teal-700 text-white font-black text-sm rounded-2xl shadow-lg hover:shadow-emerald-500/25 transition-all transform active:scale-[0.98] flex items-center justify-center space-x-2">
+              <span>Ingresar como Ciudadano</span>
+              <i data-lucide="arrow-right" class="w-4 h-4"></i>
+            </button>
+          </div>
+        </div>
+
+        <!-- CARD 2: ADMINISTRADOR (Gobierno / Password) -->
+        <div class="bg-slate-900 border border-slate-800 hover:border-amber-500/50 rounded-3xl p-6 sm:p-8 shadow-2xl text-white flex flex-col justify-between transition-all">
+          <div>
+            <div class="flex items-center justify-between mb-4">
+              <span class="w-12 h-12 rounded-2xl bg-amber-400/10 text-amber-300 flex items-center justify-center text-2xl shadow-inner border border-amber-400/30">
+                🛡️
+              </span>
+              <span class="bg-amber-400/20 text-amber-300 border border-amber-400/30 text-[10px] font-black uppercase px-2.5 py-1 rounded-full tracking-wider">
+                Gobierno Municipal
+              </span>
+            </div>
+
+            <h2 class="text-xl sm:text-2xl font-black text-white">Administrador</h2>
+            <p class="text-xs sm:text-sm text-slate-300 mt-2 leading-relaxed">
+              Panel de control para dependencias municipales: asignación de cuadrillas, cambio de estatus a <strong>Resuelto</strong> y exportación de reportes a Excel.
+            </p>
+
+            <!-- Admin Login Form -->
+            <form onsubmit="App.loginAsAdmin(event)" class="mt-4 space-y-3">
+              <div>
+                <label class="block text-[11px] font-bold text-slate-300 mb-1">Usuario</label>
+                <div class="relative">
+                  <i data-lucide="user" class="w-4 h-4 text-slate-400 absolute left-3 top-2.5"></i>
+                  <input type="text" id="admin-user-input" required placeholder="Ingresa tu usuario" class="w-full pl-9 pr-3 py-2 bg-slate-800 border border-slate-700 rounded-xl text-xs text-white focus:outline-none focus:ring-2 focus:ring-amber-400 focus:border-amber-400">
+                </div>
+              </div>
+
+              <div>
+                <label class="block text-[11px] font-bold text-slate-300 mb-1">Contraseña</label>
+                <div class="relative">
+                  <i data-lucide="lock" class="w-4 h-4 text-slate-400 absolute left-3 top-2.5"></i>
+                  <input type="password" id="admin-pass-input" required placeholder="••••••••" class="w-full pl-9 pr-3 py-2 bg-slate-800 border border-slate-700 rounded-xl text-xs text-white focus:outline-none focus:ring-2 focus:ring-amber-400 focus:border-amber-400">
+                </div>
+              </div>
+
+              <!-- Error message -->
+              <div id="admin-login-error" class="hidden p-2 rounded-xl bg-rose-500/20 border border-rose-500/40 text-rose-200 text-xs flex items-center space-x-1.5">
+                <i data-lucide="alert-circle" class="w-4 h-4 flex-shrink-0 text-rose-400"></i>
+                <span>Usuario o contraseña incorrectos</span>
+              </div>
+
+              <div class="pt-2">
+                <button type="submit" class="w-full py-3 px-4 bg-gradient-to-r from-amber-400 to-amber-500 hover:from-amber-500 hover:to-amber-600 text-slate-950 font-black text-sm rounded-2xl shadow-lg hover:shadow-amber-400/25 transition-all transform active:scale-[0.98] flex items-center justify-center space-x-2">
+                  <i data-lucide="shield-check" class="w-4 h-4"></i>
+                  <span>Ingresar como Admin</span>
+                </button>
+              </div>
+            </form>
+          </div>
+
+        </div>
+
+      </div>
+
+    </div>
+  </div>
+
+  <!-- ============================================================== -->
+  <!-- 2. MAIN APPLICATION (WRAPPED & HIDDEN UNTIL LOGGED IN)         -->
+  <!-- ============================================================== -->
+  <div id="main-app-layout" class="hidden h-screen w-screen flex flex-col overflow-hidden bg-slate-100">
+
+    <!-- TOP NAVBAR (Responsive: Compact on Mobile, Expanded on Desktop) -->
+    <header class="bg-gradient-to-r from-gp-dark via-gp-primary to-rose-900 text-white shadow-md z-30 flex-shrink-0">
+      <div class="w-full px-3 sm:px-6 h-14 sm:h-16 flex items-center justify-between gap-2 sm:gap-4">
+        
+        <!-- Logo & City Identity (Left) -->
+        <div class="flex items-center space-x-2 sm:space-x-3 cursor-pointer flex-shrink-0" onclick="App.switchView('map')">
+          <div class="w-8 h-8 sm:w-10 sm:h-10 rounded-xl bg-white/10 backdrop-blur-sm border border-white/20 flex items-center justify-center shadow-inner text-amber-300 flex-shrink-0">
+            <i data-lucide="map-pin" class="w-5 h-5 sm:w-6 sm:h-6"></i>
+          </div>
+          <div>
+            <div class="flex items-center space-x-1.5 sm:space-x-2">
+              <h1 class="font-extrabold text-sm sm:text-xl tracking-tight leading-none text-white">Alerta Gómez Palacio</h1>
+              <span class="bg-amber-400 text-slate-900 font-bold text-[9px] sm:text-[10px] uppercase px-1.5 py-0.5 rounded tracking-wider">Dgo.</span>
+              <span id="header-role-badge" class="bg-white/20 text-white text-[9px] sm:text-[10px] font-bold px-2 py-0.5 rounded-full">Ciudadano</span>
+            </div>
+            <p class="hidden sm:block text-[11px] sm:text-xs text-rose-200 font-medium mt-0.5">Mapeo Colaborativo y Reporte Ciudadano</p>
+          </div>
+        </div>
+
+        <!-- Center: Live Counters & View Tabs (Desktop only - on mobile navigation is in bottom bar) -->
+        <div class="hidden md:flex items-center space-x-3">
+          
+          <!-- Live Counters -->
+          <div class="hidden lg:flex items-center space-x-2 bg-black/20 backdrop-blur px-3 py-1.5 rounded-full border border-white/10 text-xs">
+            <div class="flex items-center space-x-1.5 text-amber-300">
+              <span class="w-2 h-2 rounded-full bg-amber-400 animate-pulse"></span>
+              <span id="header-pending-count" class="font-bold">0</span>
+              <span class="text-rose-200">Activas</span>
+            </div>
+            <span class="text-white/30">|</span>
+            <div class="flex items-center space-x-1.5 text-emerald-300">
+              <span class="w-2 h-2 rounded-full bg-emerald-400"></span>
+              <span id="header-resolved-count" class="font-bold">0</span>
+              <span class="text-rose-200">Resueltas</span>
+            </div>
+          </div>
+
+          <!-- Navigation Tabs: Mapa vs Admin -->
+          <div class="flex bg-black/25 p-1 rounded-xl border border-white/10 text-xs sm:text-sm">
+            <button id="nav-btn-map" onclick="App.switchView('map')" class="nav-tab active-tab px-3 sm:px-4 py-1.5 rounded-lg font-semibold flex items-center space-x-1.5 transition-all">
+              <i data-lucide="map" class="w-4 h-4"></i>
+              <span>Mapa</span>
+            </button>
+            <button id="nav-btn-admin" onclick="App.switchView('admin')" class="nav-tab px-3 sm:px-4 py-1.5 rounded-lg font-semibold flex items-center space-x-1.5 transition-all text-rose-100 hover:text-white">
+              <i data-lucide="shield-check" class="w-4 h-4"></i>
+              <span>Admin</span>
+              <span id="nav-admin-badge" class="ml-1 bg-amber-400 text-slate-900 text-[10px] font-bold px-1.5 py-0.2 rounded-full hidden">0</span>
+            </button>
+          </div>
+
+        </div>
+
+        <!-- Right: Nueva Alerta + Salir (Desktop only - on mobile accessible via bottom bar) -->
+        <div class="hidden md:flex items-center space-x-3 flex-shrink-0">
+          
+          <!-- Primary CTA: Report Problem -->
+          <button onclick="App.openNewReportModal()" class="bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-600 hover:to-teal-700 text-white font-bold px-4 py-2 rounded-xl text-xs sm:text-sm flex items-center space-x-2 shadow-lg hover:shadow-emerald-500/25 transition-all transform active:scale-95">
+            <i data-lucide="plus-circle" class="w-4 h-4"></i>
+            <span>Nueva Alerta</span>
+          </button>
+
+          <!-- Exit / Switch Role Button -->
+          <button onclick="App.logout()" title="Cambiar modo de acceso" class="bg-black/30 hover:bg-black/50 text-rose-100 hover:text-white px-3.5 py-2 rounded-xl text-xs font-semibold flex items-center space-x-1.5 border border-white/10 transition-colors shadow-sm">
+            <i data-lucide="log-out" class="w-3.5 h-3.5"></i>
+            <span>Salir</span>
+          </button>
+
+        </div>
+
+      </div>
+    </header>
+
+  <!-- ============================================================== -->
+  <!-- MAIN CONTAINER                                                 -->
+  <!-- ============================================================== -->
+  <main class="flex-1 relative overflow-hidden flex flex-col md:flex-row">
+
+    <!-- ============================================================ -->
+    <!-- VIEW 1: MAP VIEW (PUBLIC)                                    -->
+    <!-- ============================================================ -->
+    <div id="view-map-container" class="flex-1 flex flex-col md:flex-row h-full w-full relative">
+      
+      <!-- MAP CANVAS -->
+      <div class="flex-1 relative h-full w-full">
+        <div id="gomez-map" class="h-full w-full z-10"></div>
+
+        <!-- FLOATING OVERLAY: Single Integrated Category & Control Bar (Top of Map) -->
+        <div class="absolute top-2.5 sm:top-3 left-2.5 right-2.5 sm:left-4 sm:right-auto z-20 pointer-events-none">
+          <div class="flex items-center space-x-1 sm:space-x-1.5 overflow-x-auto no-scrollbar pointer-events-auto bg-white/95 backdrop-blur-md p-1 sm:p-1.5 rounded-2xl shadow-lg border border-slate-200/80 max-w-full sm:max-w-3xl">
+            <button onclick="MapApp.setCategoryFilter('todas')" class="category-chip active px-2.5 sm:px-3 py-1.5 rounded-xl text-xs font-semibold whitespace-nowrap transition-all flex items-center space-x-1 bg-slate-900 text-white flex-shrink-0" data-cat="todas">
+              <span>Todo</span>
+              <span id="chip-count-todas" class="text-[10px] opacity-80">(0)</span>
+            </button>
+            <button onclick="MapApp.setCategoryFilter('agua')" class="category-chip px-2.5 sm:px-3 py-1.5 rounded-xl text-xs font-medium text-slate-700 hover:bg-slate-100 whitespace-nowrap transition-all flex items-center space-x-1 flex-shrink-0" data-cat="agua">
+              <span>💧 Agua</span>
+            </button>
+            <button onclick="MapApp.setCategoryFilter('luz')" class="category-chip px-2.5 sm:px-3 py-1.5 rounded-xl text-xs font-medium text-slate-700 hover:bg-slate-100 whitespace-nowrap transition-all flex items-center space-x-1 flex-shrink-0" data-cat="luz">
+              <span>💡 Sin Luz</span>
+            </button>
+            <button onclick="MapApp.setCategoryFilter('baches')" class="category-chip px-2.5 sm:px-3 py-1.5 rounded-xl text-xs font-medium text-slate-700 hover:bg-slate-100 whitespace-nowrap transition-all flex items-center space-x-1 flex-shrink-0" data-cat="baches">
+              <span>🕳️ Baches</span>
+            </button>
+            <button onclick="MapApp.setCategoryFilter('basura')" class="category-chip px-2.5 sm:px-3 py-1.5 rounded-xl text-xs font-medium text-slate-700 hover:bg-slate-100 whitespace-nowrap transition-all flex items-center space-x-1 flex-shrink-0" data-cat="basura">
+              <span>🗑️ Basura</span>
+            </button>
+            <button onclick="MapApp.setCategoryFilter('drenaje')" class="category-chip px-2.5 sm:px-3 py-1.5 rounded-xl text-xs font-medium text-slate-700 hover:bg-slate-100 whitespace-nowrap transition-all flex items-center space-x-1 flex-shrink-0" data-cat="drenaje">
+              <span>🚽 Drenaje</span>
+            </button>
+            <button onclick="MapApp.setCategoryFilter('semaforo')" class="category-chip px-2.5 sm:px-3 py-1.5 rounded-xl text-xs font-medium text-slate-700 hover:bg-slate-100 whitespace-nowrap transition-all flex items-center space-x-1 flex-shrink-0" data-cat="semaforo">
+              <span>🚦 Semáforos</span>
+            </button>
+
+            <!-- Divider -->
+            <span class="w-[1px] h-5 bg-slate-200 flex-shrink-0 mx-0.5"></span>
+
+            <!-- Toggle Satellite / Streets -->
+            <button id="btn-map-layer-toggle" onclick="MapApp.toggleMapLayer()" class="px-2.5 sm:px-3 py-1.5 rounded-xl text-xs font-semibold text-slate-700 hover:bg-slate-100 whitespace-nowrap transition-all flex items-center space-x-1 flex-shrink-0">
+              <span>🛰️ Satélite</span>
+            </button>
+            
+            <!-- Toggle Resolved -->
+            <label class="px-2 sm:px-2.5 py-1.5 rounded-xl text-xs font-medium text-slate-700 hover:bg-slate-100 whitespace-nowrap transition-all flex items-center space-x-1.5 flex-shrink-0 cursor-pointer">
+              <input type="checkbox" id="toggle-show-resolved" checked onchange="MapApp.toggleResolvedMarkers()" class="rounded text-gp-primary focus:ring-gp-primary">
+              <span>Resueltas</span>
+            </label>
+          </div>
+        </div>
+
+        <!-- FLOATING OVERLAY: Map Quick Actions (Bottom Right) -->
+        <div class="absolute bottom-20 md:bottom-6 right-3 sm:right-6 z-20 flex flex-col space-y-2 pointer-events-auto">
+          <button onclick="MapApp.locateUser()" title="Ubicar mi posición GPS" class="w-10 h-10 sm:w-11 sm:h-11 bg-white hover:bg-slate-50 text-slate-700 rounded-full shadow-lg border border-slate-200 flex items-center justify-center transition-transform active:scale-90">
+            <i data-lucide="crosshair" class="w-4 h-4 sm:w-5 sm:h-5 text-gp-primary"></i>
+          </button>
+          <button onclick="MapApp.centerGomezPalacio()" title="Centrar en Gómez Palacio" class="w-10 h-10 sm:w-11 sm:h-11 bg-white hover:bg-slate-50 text-slate-700 rounded-full shadow-lg border border-slate-200 flex items-center justify-center transition-transform active:scale-90">
+            <i data-lucide="compass" class="w-4 h-4 sm:w-5 sm:h-5 text-gp-primary"></i>
+          </button>
+        </div>
+
+      </div>
+
+      <!-- DESKTOP / MOBILE SIDEBAR: Recent Reports Feed -->
+      <aside id="reports-sidebar" class="sidebar-drawer fixed md:static inset-y-0 right-0 z-30 w-full sm:w-96 md:w-80 lg:w-96 bg-white border-l border-slate-200 shadow-2xl md:shadow-none flex flex-col transform translate-x-full md:translate-x-0 transition-transform duration-300">
+        
+        <!-- Sidebar Header -->
+        <div class="p-4 border-b border-slate-100 flex items-center justify-between bg-slate-50">
+          <div>
+            <h2 class="font-bold text-slate-900 text-sm flex items-center space-x-2">
+              <i data-lucide="activity" class="w-4 h-4 text-gp-primary"></i>
+              <span>Alertas Ciudadanas</span>
+            </h2>
+            <p class="text-xs text-slate-500">Reportadas por vecinos en Gómez Palacio</p>
+          </div>
+          <button onclick="App.toggleSidebar(false)" class="md:hidden text-slate-400 hover:text-slate-600 p-1.5 rounded-lg hover:bg-slate-100">
+            <i data-lucide="x" class="w-5 h-5"></i>
+          </button>
+        </div>
+
+        <!-- Search in list -->
+        <div class="p-3 border-b border-slate-100 bg-white">
+          <div class="relative">
+            <i data-lucide="search" class="w-4 h-4 text-slate-400 absolute left-3 top-2.5"></i>
+            <input type="text" id="sidebar-search-input" oninput="App.onSearchInput(this.value)" placeholder="Buscar por calle, colonia o clave..." class="w-full pl-9 pr-3 py-2 bg-slate-50 hover:bg-slate-100/80 focus:bg-white text-xs rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-gp-primary/20 focus:border-gp-primary transition-all">
+          </div>
+        </div>
+
+        <!-- Reports List Scrollable -->
+        <div id="sidebar-reports-list" class="flex-1 overflow-y-auto divide-y divide-slate-100 p-2 space-y-2">
+          <!-- Populated by JS -->
+          <div class="flex items-center justify-center h-48 text-slate-400 text-xs">
+            <div class="text-center">
+              <i data-lucide="loader-2" class="w-6 h-6 animate-spin mx-auto mb-2 text-gp-primary"></i>
+              <span>Cargando alertas de Gómez Palacio...</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Sidebar Footer Action -->
+        <div class="p-3 bg-slate-50 border-t border-slate-100">
+          <button onclick="App.openNewReportModal()" class="w-full py-2.5 px-3 bg-gp-primary hover:bg-gp-dark text-white text-xs font-bold rounded-xl flex items-center justify-center space-x-2 transition-all shadow-sm">
+            <i data-lucide="alert-triangle" class="w-4 h-4"></i>
+            <span>Reportar Problema en mi Colonia</span>
+          </button>
+        </div>
+
+      </aside>
+
+    </div>
+
+    <!-- ============================================================ -->
+    <!-- VIEW 2: ADMIN VIEW (DASHBOARD & STATUS MANAGEMENT)           -->
+    <!-- ============================================================ -->
+    <div id="view-admin-container" class="hidden flex-1 overflow-y-auto bg-slate-50 h-full w-full p-4 sm:p-6 lg:p-8">
+      
+      <div class="max-w-7xl mx-auto space-y-6">
+        
+        <!-- Admin Title & Header -->
+        <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 bg-white p-5 rounded-2xl border border-slate-200 shadow-sm">
+          <div>
+            <div class="flex items-center space-x-2">
+              <span class="px-2.5 py-0.5 rounded-full text-xs font-bold bg-rose-100 text-rose-800">Panel Municipal</span>
+              <h2 class="text-xl sm:text-2xl font-black text-slate-900 tracking-tight">Gestión de Alertas Ciudadanas</h2>
+            </div>
+            <p class="text-xs sm:text-sm text-slate-500 mt-1">Revisión de folios, asignación de cuadrillas y marcado de problemas resueltos en Gómez Palacio.</p>
+          </div>
+
+          <div class="flex items-center space-x-2.5">
+            <button onclick="AdminApp.exportCSV()" class="px-3.5 py-2 rounded-xl text-xs font-semibold bg-slate-100 hover:bg-slate-200 text-slate-700 flex items-center space-x-1.5 transition-all">
+              <i data-lucide="download" class="w-4 h-4"></i>
+              <span>Exportar Excel/CSV</span>
+            </button>
+            <button onclick="AdminApp.refreshData()" class="px-3.5 py-2 rounded-xl text-xs font-semibold bg-gp-primary hover:bg-gp-dark text-white flex items-center space-x-1.5 transition-all shadow-sm">
+              <i data-lucide="refresh-cw" class="w-4 h-4"></i>
+              <span>Actualizar</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- KPI Metrics Grid -->
+        <div class="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
+          
+          <div class="bg-white p-4 sm:p-5 rounded-2xl border border-slate-200 shadow-sm flex items-center justify-between">
+            <div>
+              <p class="text-xs font-medium text-slate-500 uppercase tracking-wider">Total Reportes</p>
+              <h3 id="admin-kpi-total" class="text-2xl sm:text-3xl font-black text-slate-900 mt-1">0</h3>
+              <p class="text-[11px] text-slate-400 mt-0.5">En toda la ciudad</p>
+            </div>
+            <div class="w-12 h-12 rounded-2xl bg-slate-100 text-slate-600 flex items-center justify-center">
+              <i data-lucide="files" class="w-6 h-6"></i>
+            </div>
+          </div>
+
+          <div class="bg-white p-4 sm:p-5 rounded-2xl border border-amber-100 shadow-sm flex items-center justify-between">
+            <div>
+              <p class="text-xs font-medium text-amber-600 uppercase tracking-wider">Pendientes</p>
+              <h3 id="admin-kpi-pending" class="text-2xl sm:text-3xl font-black text-amber-600 mt-1">0</h3>
+              <p class="text-[11px] text-amber-500 mt-0.5">Requieren atención</p>
+            </div>
+            <div class="w-12 h-12 rounded-2xl bg-amber-50 text-amber-600 flex items-center justify-center">
+              <i data-lucide="clock" class="w-6 h-6"></i>
+            </div>
+          </div>
+
+          <div class="bg-white p-4 sm:p-5 rounded-2xl border border-blue-100 shadow-sm flex items-center justify-between">
+            <div>
+              <p class="text-xs font-medium text-blue-600 uppercase tracking-wider">En Proceso</p>
+              <h3 id="admin-kpi-in-progress" class="text-2xl sm:text-3xl font-black text-blue-600 mt-1">0</h3>
+              <p class="text-[11px] text-blue-500 mt-0.5">Cuadrilla asignada</p>
+            </div>
+            <div class="w-12 h-12 rounded-2xl bg-blue-50 text-blue-600 flex items-center justify-center">
+              <i data-lucide="wrench" class="w-6 h-6"></i>
+            </div>
+          </div>
+
+          <div class="bg-white p-4 sm:p-5 rounded-2xl border border-emerald-100 shadow-sm flex items-center justify-between">
+            <div>
+              <p class="text-xs font-medium text-emerald-600 uppercase tracking-wider">Resueltos</p>
+              <h3 id="admin-kpi-resolved" class="text-2xl sm:text-3xl font-black text-emerald-600 mt-1">0</h3>
+              <p id="admin-kpi-resolution-rate" class="text-[11px] text-emerald-500 mt-0.5">0% efectividad</p>
+            </div>
+            <div class="w-12 h-12 rounded-2xl bg-emerald-50 text-emerald-600 flex items-center justify-center">
+              <i data-lucide="check-circle-2" class="w-6 h-6"></i>
+            </div>
+          </div>
+
+        </div>
+
+        <!-- Filters & Table Section -->
+        <div class="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
+          
+          <!-- Filters Toolbar -->
+          <div class="p-4 border-b border-slate-100 flex flex-col md:flex-row md:items-center md:justify-between gap-3 bg-slate-50/50">
+            
+            <div class="flex flex-wrap items-center gap-2">
+              <div class="relative min-w-[220px]">
+                <i data-lucide="search" class="w-4 h-4 text-slate-400 absolute left-3 top-2.5"></i>
+                <input type="text" id="admin-search-input" oninput="AdminApp.filterTable()" placeholder="Buscar folio, calle o problema..." class="w-full pl-9 pr-3 py-2 bg-white text-xs rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-gp-primary/20 focus:border-gp-primary">
+              </div>
+
+              <!-- Filter by Category -->
+              <select id="admin-filter-category" onchange="AdminApp.filterTable()" class="bg-white border border-slate-200 rounded-xl px-3 py-2 text-xs font-medium text-slate-700 focus:outline-none focus:ring-2 focus:ring-gp-primary/20">
+                <option value="todas">Todas las Categorías</option>
+                <option value="agua">💧 Agua Potable</option>
+                <option value="luz">💡 Alumbrado / Luz</option>
+                <option value="baches">🕳️ Baches / Pavimento</option>
+                <option value="basura">🗑️ Basura / Escombro</option>
+                <option value="drenaje">🚽 Drenaje Tapado</option>
+                <option value="semaforo">🚦 Semáforos</option>
+                <option value="parques">🌳 Parques y Árboles</option>
+                <option value="otro">⚠️ Otro</option>
+              </select>
+
+              <!-- Filter by Status -->
+              <select id="admin-filter-status" onchange="AdminApp.filterTable()" class="bg-white border border-slate-200 rounded-xl px-3 py-2 text-xs font-medium text-slate-700 focus:outline-none focus:ring-2 focus:ring-gp-primary/20">
+                <option value="todos">Todos los Estados</option>
+                <option value="Pendiente">🟡 Solo Pendientes</option>
+                <option value="En Proceso">🔵 En Proceso</option>
+                <option value="Resuelto">🟢 Solo Resueltos</option>
+                <option value="Rechazado">🔴 Rechazados</option>
+              </select>
+            </div>
+
+            <div class="text-xs text-slate-500 font-medium">
+              Mostrando <span id="admin-filtered-count" class="font-bold text-slate-800">0</span> reportes
+            </div>
+
+          </div>
+
+          <!-- Table Wrapper (Responsive) -->
+          <div class="overflow-x-auto">
+            <table class="w-full text-left text-xs border-collapse">
+              <thead>
+                <tr class="bg-slate-50 text-slate-500 font-semibold border-b border-slate-200">
+                  <th class="py-3 px-4">Folio / Fecha</th>
+                  <th class="py-3 px-4">Categoría</th>
+                  <th class="py-3 px-4">Descripción Clave</th>
+                  <th class="py-3 px-4">Dirección / Colonia</th>
+                  <th class="py-3 px-4">Evidencia</th>
+                  <th class="py-3 px-4">Estado</th>
+                  <th class="py-3 px-4 text-right">Acción</th>
+                </tr>
+              </thead>
+              <tbody id="admin-reports-table-body" class="divide-y divide-slate-100 font-normal">
+                <!-- Rows injected dynamically by admin.js -->
+              </tbody>
+            </table>
+          </div>
+
+          <!-- Empty State -->
+          <div id="admin-empty-state" class="hidden py-12 text-center text-slate-400">
+            <i data-lucide="inbox" class="w-10 h-10 mx-auto text-slate-300 mb-2"></i>
+            <p class="font-medium text-sm">No se encontraron alertas con los filtros seleccionados</p>
+          </div>
+
+        </div>
+
+      </div>
+
+    </div>
+
+  </main>
+
+  <!-- ============================================================== -->
+  <!-- MOBILE BOTTOM NAV (Touch-Friendly)                             -->
+  <!-- ============================================================== -->
+  <nav class="md:hidden bg-white border-t border-slate-200 h-14 flex items-center justify-around z-30 flex-shrink-0">
+    <button onclick="App.switchView('map')" id="m-nav-map" class="flex flex-col items-center justify-center text-gp-primary font-bold text-[10px]">
+      <i data-lucide="map" class="w-5 h-5"></i>
+      <span>Mapa GP</span>
+    </button>
+    <button onclick="App.toggleSidebar(true)" id="m-nav-list" class="flex flex-col items-center justify-center text-slate-500 font-medium text-[10px]">
+      <i data-lucide="list" class="w-5 h-5"></i>
+      <span>Alertas</span>
+    </button>
+    <button onclick="App.openNewReportModal()" class="flex flex-col items-center justify-center text-emerald-600 font-bold text-[10px]">
+      <div class="w-9 h-9 -mt-4 bg-emerald-500 rounded-full flex items-center justify-center text-white shadow-lg">
+        <i data-lucide="plus" class="w-5 h-5"></i>
+      </div>
+      <span class="mt-0.5">Reportar</span>
+    </button>
+    <button onclick="App.switchView('admin')" id="m-nav-admin" class="flex flex-col items-center justify-center text-slate-500 font-medium text-[10px]">
+      <i data-lucide="shield-check" class="w-5 h-5"></i>
+      <span>Admin</span>
+    </button>
+    <button onclick="App.logout()" id="m-nav-logout" class="flex flex-col items-center justify-center text-slate-400 hover:text-rose-600 font-medium text-[10px]">
+      <i data-lucide="log-out" class="w-5 h-5"></i>
+      <span>Salir</span>
+    </button>
+  </nav>
+
+  </div> <!-- /#main-app-layout -->
+
+  <!-- ============================================================== -->
+  <!-- MODAL: REPORTAR ALERTA (MODO ABIERTO - SIN REGISTRO)          -->
+  <!-- ============================================================== -->
+  <div id="modal-new-report" class="modal-backdrop fixed inset-0 z-50 bg-black/60 backdrop-blur-sm hidden flex items-center justify-center p-3 sm:p-4 overflow-y-auto">
+    <div class="modal-content bg-white w-full max-w-xl rounded-3xl shadow-2xl border border-slate-100 overflow-hidden my-auto transform transition-all max-h-[92vh] flex flex-col">
+      
+      <!-- Modal Header -->
+      <div class="bg-gradient-to-r from-gp-dark to-gp-primary p-4 sm:p-5 text-white flex items-center justify-between flex-shrink-0">
+        <div>
+          <div class="flex items-center space-x-2">
+            <span class="bg-amber-400 text-slate-900 text-[10px] font-black uppercase px-2 py-0.5 rounded-full">Modo Ciudadano Abierto</span>
+            <span class="text-rose-200 text-xs">Sin registro requerido</span>
+          </div>
+          <h3 class="text-lg sm:text-xl font-black tracking-tight mt-1">Reportar Alerta Ciudadana</h3>
+          <p class="text-xs text-rose-100">Gómez Palacio, Durango</p>
+        </div>
+        <button onclick="App.closeNewReportModal()" class="text-white/80 hover:text-white p-1 rounded-full hover:bg-white/10 transition-colors">
+          <i data-lucide="x" class="w-6 h-6"></i>
+        </button>
+      </div>
+
+      <!-- Form Body (Scrollable) -->
+      <form id="form-new-report" onsubmit="App.submitReport(event)" class="p-4 sm:p-6 overflow-y-auto space-y-4 text-xs sm:text-sm flex-1">
+        
+        <!-- Field 1: Category Selector -->
+        <div>
+          <label class="block font-bold text-slate-800 mb-1.5 flex items-center space-x-1">
+            <span>1. Tipo de Problema</span>
+            <span class="text-rose-600">*</span>
+          </label>
+          <div class="grid grid-cols-4 gap-1.5 sm:gap-2" id="category-selector-grid">
+            <button type="button" onclick="App.selectCategory('baches', this)" class="cat-card active-cat p-1.5 sm:p-2.5 rounded-xl border border-slate-200 hover:border-gp-primary text-center transition-all flex flex-col items-center space-y-1">
+              <span class="text-lg sm:text-xl">🕳️</span>
+              <span class="font-bold text-[10px] sm:text-xs text-slate-800">Bache</span>
+            </button>
+            <button type="button" onclick="App.selectCategory('agua', this)" class="cat-card p-1.5 sm:p-2.5 rounded-xl border border-slate-200 hover:border-gp-primary text-center transition-all flex flex-col items-center space-y-1">
+              <span class="text-lg sm:text-xl">💧</span>
+              <span class="font-bold text-[10px] sm:text-xs text-slate-800">Agua</span>
+            </button>
+            <button type="button" onclick="App.selectCategory('luz', this)" class="cat-card p-1.5 sm:p-2.5 rounded-xl border border-slate-200 hover:border-gp-primary text-center transition-all flex flex-col items-center space-y-1">
+              <span class="text-lg sm:text-xl">💡</span>
+              <span class="font-bold text-[10px] sm:text-xs text-slate-800">Luz</span>
+            </button>
+            <button type="button" onclick="App.selectCategory('basura', this)" class="cat-card p-1.5 sm:p-2.5 rounded-xl border border-slate-200 hover:border-gp-primary text-center transition-all flex flex-col items-center space-y-1">
+              <span class="text-lg sm:text-xl">🗑️</span>
+              <span class="font-bold text-[10px] sm:text-xs text-slate-800">Basura</span>
+            </button>
+            <button type="button" onclick="App.selectCategory('drenaje', this)" class="cat-card p-1.5 sm:p-2.5 rounded-xl border border-slate-200 hover:border-gp-primary text-center transition-all flex flex-col items-center space-y-1">
+              <span class="text-lg sm:text-xl">🚽</span>
+              <span class="font-bold text-[10px] sm:text-xs text-slate-800">Drenaje</span>
+            </button>
+            <button type="button" onclick="App.selectCategory('semaforo', this)" class="cat-card p-1.5 sm:p-2.5 rounded-xl border border-slate-200 hover:border-gp-primary text-center transition-all flex flex-col items-center space-y-1">
+              <span class="text-lg sm:text-xl">🚦</span>
+              <span class="font-bold text-[10px] sm:text-xs text-slate-800">Semáforo</span>
+            </button>
+            <button type="button" onclick="App.selectCategory('parques', this)" class="cat-card p-1.5 sm:p-2.5 rounded-xl border border-slate-200 hover:border-gp-primary text-center transition-all flex flex-col items-center space-y-1">
+              <span class="text-lg sm:text-xl">🌳</span>
+              <span class="font-bold text-[10px] sm:text-xs text-slate-800">Parques</span>
+            </button>
+            <button type="button" onclick="App.selectCategory('otro', this)" class="cat-card p-1.5 sm:p-2.5 rounded-xl border border-slate-200 hover:border-gp-primary text-center transition-all flex flex-col items-center space-y-1">
+              <span class="text-lg sm:text-xl">⚠️</span>
+              <span class="font-bold text-[10px] sm:text-xs text-slate-800">Otro</span>
+            </button>
+          </div>
+          <input type="hidden" id="report-category" name="category" value="baches" required>
+        </div>
+
+        <!-- Field 2: Título / Descripción Clave (User explicit request) -->
+        <div>
+          <label for="report-title" class="block font-bold text-slate-800 mb-1 flex items-center justify-between">
+            <span class="flex items-center space-x-1">
+              <span>2. Descripción Clave (Título del Problema)</span>
+              <span class="text-rose-600">*</span>
+            </span>
+            <span class="text-[11px] text-slate-400 font-normal">Palabras clave del reporte</span>
+          </label>
+          <input type="text" id="report-title" name="title" required placeholder="Ej: Mega bache carril derecho frente a Soriana Hamburgo" class="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:outline-none focus:ring-2 focus:ring-gp-primary/20 focus:border-gp-primary text-xs sm:text-sm">
+        </div>
+
+        <!-- Field 3: Descripción Detallada -->
+        <div>
+          <label for="report-description" class="block font-bold text-slate-800 mb-1 flex items-center space-x-1">
+            <span>3. Descripción Detallada</span>
+            <span class="text-rose-600">*</span>
+          </label>
+          <textarea id="report-description" name="description" rows="3" required placeholder="Explica detalladamente: ¿Cuánto tiempo lleva? ¿Afecta a peatones, viviendas o circulación?..." class="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:outline-none focus:ring-2 focus:ring-gp-primary/20 focus:border-gp-primary text-xs sm:text-sm"></textarea>
+        </div>
+
+        <!-- Field 4: Dirección Exacta & Colonia -->
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <div>
+            <label for="report-address" class="block font-bold text-slate-800 mb-1 flex items-center space-x-1">
+              <span>4. Dirección Exacta</span>
+              <span class="text-rose-600">*</span>
+            </label>
+            <input type="text" id="report-address" name="address" required placeholder="Calle, número exterior y entrecalles" class="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:outline-none focus:ring-2 focus:ring-gp-primary/20 focus:border-gp-primary text-xs sm:text-sm">
+          </div>
+          <div>
+            <label for="report-colonia" class="block font-bold text-slate-800 mb-1">
+              Colonia o Sector
+            </label>
+            <input type="text" id="report-colonia" name="colonia" placeholder="Ej: Centro, Hamburgo, Filadelfia, Las Rosas..." class="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:outline-none focus:ring-2 focus:ring-gp-primary/20 focus:border-gp-primary text-xs sm:text-sm">
+          </div>
+        </div>
+
+        <!-- Field 5: Ubicación en el Mapa (Coordenadas) -->
+        <div class="bg-slate-50 p-3.5 rounded-2xl border border-slate-200 space-y-2">
+          <div class="flex items-center justify-between">
+            <span class="font-bold text-slate-800 text-xs flex items-center space-x-1">
+              <i data-lucide="map-pin" class="w-4 h-4 text-gp-primary"></i>
+              <span>5. Punto Exacto en el Mapa</span>
+            </span>
+            <button type="button" onclick="App.getGPSForReport()" class="bg-white hover:bg-slate-100 text-gp-primary text-xs font-semibold px-2.5 py-1 rounded-lg border border-slate-200 flex items-center space-x-1 shadow-sm transition-all">
+              <i data-lucide="crosshair" class="w-3.5 h-3.5"></i>
+              <span>Usar mi GPS</span>
+            </button>
+          </div>
+          
+          <p class="text-[11px] text-slate-500">Mueve o toca el mapa abajo para ajustar el pin en la calle exacta de Gómez Palacio:</p>
+          
+          <!-- Mini Picker Map -->
+          <div id="picker-map" class="h-36 w-full rounded-xl border border-slate-300 relative z-10 overflow-hidden"></div>
+          
+          <div class="flex items-center justify-between text-[11px] text-slate-500 pt-1">
+            <span>Lat: <strong id="picker-lat-text">25.5677</strong></span>
+            <span>Lng: <strong id="picker-lng-text">-103.4988</strong></span>
+            <span id="picker-status-badge" class="text-emerald-600 font-semibold flex items-center space-x-1">
+              <i data-lucide="check" class="w-3 h-3"></i>
+              <span>Gómez Palacio</span>
+            </span>
+          </div>
+
+          <!-- Warning banner if outside boundaries -->
+          <div id="picker-boundary-warning" class="hidden p-2.5 rounded-xl bg-rose-50 border border-rose-200 text-rose-700 text-xs flex items-center space-x-2 font-medium">
+            <i data-lucide="alert-circle" class="w-4 h-4 text-rose-600 flex-shrink-0"></i>
+            <span>⚠️ Esta ubicación está fuera del municipio de Gómez Palacio. Solo se admiten reportes locales.</span>
+          </div>
+
+          <input type="hidden" id="report-lat" name="latitude" value="25.5677">
+          <input type="hidden" id="report-lng" name="longitude" value="-103.4988">
+        </div>
+
+        <!-- Field 6: Foto / Evidencia Fotográfica -->
+        <div>
+          <label class="block font-bold text-slate-800 mb-1 flex items-center justify-between">
+            <span class="flex items-center space-x-1">
+              <span>6. Foto o Evidencia</span>
+              <span class="text-rose-600">*</span>
+            </span>
+            <span class="text-[11px] text-slate-400 font-normal">Cámara o galería</span>
+          </label>
+          
+          <!-- Image Upload Dropzone -->
+          <div id="dropzone-container" class="border-2 border-dashed border-slate-300 hover:border-gp-primary rounded-2xl p-4 text-center cursor-pointer transition-colors bg-slate-50 hover:bg-rose-50/20" onclick="document.getElementById('report-image-input').click()">
+            <input type="file" id="report-image-input" accept="image/*" capture="environment" class="hidden" onchange="App.handleImageSelected(event)">
+            
+            <div id="dropzone-prompt">
+              <div class="w-12 h-12 bg-white rounded-2xl shadow-sm border border-slate-200 text-gp-primary flex items-center justify-center mx-auto mb-2">
+                <i data-lucide="camera" class="w-6 h-6"></i>
+              </div>
+              <p class="font-bold text-xs text-slate-800">Toca para tomar foto o elegir archivo</p>
+              <p class="text-[11px] text-slate-400 mt-0.5">JPG, PNG o WebP desde tu celular o computadora</p>
+            </div>
+
+            <!-- Preview box -->
+            <div id="dropzone-preview" class="hidden relative">
+              <img id="preview-img" src="" alt="Previsualización" class="max-h-48 rounded-xl mx-auto shadow-md border border-slate-200 object-cover">
+              <button type="button" onclick="App.clearSelectedImage(event)" class="absolute top-2 right-2 bg-rose-600 text-white p-1.5 rounded-full shadow-lg hover:bg-rose-700 transition-colors">
+                <i data-lucide="x" class="w-4 h-4"></i>
+              </button>
+            </div>
+          </div>
+          <input type="hidden" id="report-image-base64" name="image">
+        </div>
+
+        <!-- Field 7: Nombre o Alias (Opcional) -->
+        <div>
+          <label for="report-reporter" class="block font-bold text-slate-800 mb-1">
+            Tu Nombre o Alias (Opcional)
+          </label>
+          <input type="text" id="report-reporter" name="reporter_name" placeholder="Ciudadano Anónimo (o escribe tu nombre)" class="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:outline-none focus:ring-2 focus:ring-gp-primary/20 focus:border-gp-primary text-xs sm:text-sm">
+        </div>
+
+        <!-- Submit Button -->
+        <div class="pt-3">
+          <button type="submit" id="btn-submit-report" class="w-full py-3.5 px-4 bg-gradient-to-r from-emerald-500 via-teal-600 to-emerald-700 hover:from-emerald-600 hover:to-teal-800 text-white font-black text-sm sm:text-base rounded-2xl shadow-xl hover:shadow-emerald-500/25 flex items-center justify-center space-x-2 transition-all transform active:scale-[0.98]">
+            <i data-lucide="send" class="w-5 h-5"></i>
+            <span>Publicar Alerta en el Mapa</span>
+          </button>
+        </div>
+
+      </form>
+
+    </div>
+  </div>
+
+  <!-- ============================================================== -->
+  <!-- MODAL: CONFIRMACIÓN EXITOSA DE REPORTE                          -->
+  <!-- ============================================================== -->
+  <div id="modal-success" class="modal-backdrop fixed inset-0 z-50 bg-black/60 backdrop-blur-sm hidden flex items-center justify-center p-4">
+    <div class="modal-content bg-white w-full max-w-md rounded-3xl shadow-2xl p-6 text-center transform transition-all border border-slate-100">
+      
+      <div class="w-16 h-16 bg-emerald-100 text-emerald-600 rounded-full flex items-center justify-center mx-auto mb-4">
+        <i data-lucide="check-circle" class="w-10 h-10"></i>
+      </div>
+
+      <h3 class="text-xl font-black text-slate-900 tracking-tight">¡Alerta Registrada con Éxito!</h3>
+      <p class="text-xs text-slate-500 mt-1">Ya es visible públicamente en el mapa de Gómez Palacio para atención de las cuadrillas municipales.</p>
+
+      <!-- Folio Box -->
+      <div class="bg-slate-50 border-2 border-dashed border-slate-300 rounded-2xl p-3.5 my-4">
+        <span class="text-[11px] uppercase tracking-wider text-slate-400 font-bold block">Folio de Seguimiento</span>
+        <div class="flex items-center justify-center space-x-2 mt-1">
+          <span id="success-folio-display" class="font-mono text-xl sm:text-2xl font-black text-gp-primary">GP-2026-0000</span>
+          <button onclick="App.copyFolio()" title="Copiar folio" class="p-1 text-slate-500 hover:text-slate-800">
+            <i data-lucide="copy" class="w-4 h-4"></i>
+          </button>
+        </div>
+      </div>
+
+      <div class="space-y-2">
+        <button onclick="App.viewCreatedOnMap()" class="w-full py-3 bg-gp-primary hover:bg-gp-dark text-white font-bold text-xs sm:text-sm rounded-xl transition-all shadow-md flex items-center justify-center space-x-1.5">
+          <i data-lucide="map-pin" class="w-4 h-4"></i>
+          <span>Ver mi Alerta en el Mapa</span>
+        </button>
+        <button onclick="App.closeSuccessModal()" class="w-full py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold text-xs rounded-xl transition-colors">
+          Cerrar
+        </button>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- ============================================================== -->
+  <!-- MODAL: GESTIÓN DE REPORTE (ADMIN)                              -->
+  <!-- ============================================================== -->
+  <div id="modal-admin-manage" class="modal-backdrop fixed inset-0 z-50 bg-black/60 backdrop-blur-sm hidden flex items-center justify-center p-3 sm:p-4 overflow-y-auto">
+    <div class="modal-content bg-white w-full max-w-2xl rounded-3xl shadow-2xl border border-slate-100 overflow-hidden my-auto transform transition-all max-h-[92vh] flex flex-col">
+      
+      <!-- Modal Header -->
+      <div class="bg-slate-900 p-4 sm:p-5 text-white flex items-center justify-between flex-shrink-0">
+        <div>
+          <div class="flex items-center space-x-2">
+            <span id="manage-folio" class="bg-amber-400 text-slate-900 text-xs font-mono font-black px-2 py-0.5 rounded">GP-2026-000</span>
+            <span id="manage-badge-category" class="bg-white/20 text-white text-xs px-2 py-0.5 rounded font-semibold uppercase">Bache</span>
+          </div>
+          <h3 id="manage-title" class="text-base sm:text-lg font-bold mt-1 text-white">Título de la Alerta</h3>
+        </div>
+        <button onclick="AdminApp.closeManageModal()" class="text-white/70 hover:text-white p-1 rounded-full hover:bg-white/10 transition-colors">
+          <i data-lucide="x" class="w-6 h-6"></i>
+        </button>
+      </div>
+
+      <!-- Modal Body -->
+      <div class="p-4 sm:p-6 overflow-y-auto space-y-4 text-xs sm:text-sm flex-1">
+        
+        <!-- Photo and Info Split -->
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <!-- Photo -->
+          <div class="bg-slate-100 rounded-2xl overflow-hidden border border-slate-200 flex items-center justify-center max-h-60">
+            <img id="manage-photo" src="" alt="Evidencia" class="w-full h-full object-cover cursor-pointer hover:opacity-95" onclick="App.openFullPhoto(this.src)">
+          </div>
+
+          <!-- Quick Data -->
+          <div class="space-y-2.5 text-xs text-slate-700">
+            <div>
+              <span class="text-slate-400 uppercase font-bold text-[10px] block">Dirección</span>
+              <p id="manage-address" class="font-bold text-slate-900 text-sm">Calle...</p>
+              <p id="manage-colonia" class="text-slate-500">Colonia...</p>
+            </div>
+            <div>
+              <span class="text-slate-400 uppercase font-bold text-[10px] block">Fecha de reporte</span>
+              <p id="manage-date" class="font-medium text-slate-700">--</p>
+            </div>
+            <div>
+              <span class="text-slate-400 uppercase font-bold text-[10px] block">Reportado por</span>
+              <p id="manage-reporter" class="font-medium text-slate-700">--</p>
+            </div>
+            <div>
+              <span class="text-slate-400 uppercase font-bold text-[10px] block">Coordenadas</span>
+              <p id="manage-coords" class="font-mono text-slate-500 text-[11px]">Lat: -- | Lng: --</p>
+            </div>
+          </div>
+        </div>
+
+        <!-- Detailed Description -->
+        <div>
+          <span class="text-slate-400 uppercase font-bold text-[10px] block mb-1">Descripción Detallada del Ciudadano</span>
+          <div id="manage-description" class="p-3 bg-slate-50 rounded-xl border border-slate-200 text-slate-700 text-xs leading-relaxed">
+            --
+          </div>
+        </div>
+
+        <!-- ADMIN STATUS UPDATE SECTION -->
+        <div class="bg-amber-50/60 border border-amber-200 rounded-2xl p-4 space-y-3">
+          <h4 class="font-bold text-slate-900 text-xs sm:text-sm flex items-center space-x-1.5">
+            <i data-lucide="edit-3" class="w-4 h-4 text-gp-primary"></i>
+            <span>Asignar Estado de Resolución</span>
+          </h4>
+
+          <div class="grid grid-cols-2 sm:grid-cols-4 gap-2">
+            <label class="cursor-pointer">
+              <input type="radio" name="admin-status-radio" value="Pendiente" class="hidden peer">
+              <div class="p-2.5 rounded-xl border border-slate-200 bg-white text-center font-bold text-xs peer-checked:bg-amber-500 peer-checked:text-white peer-checked:border-amber-500 transition-all">
+                🟡 Pendiente
+              </div>
+            </label>
+            <label class="cursor-pointer">
+              <input type="radio" name="admin-status-radio" value="En Proceso" class="hidden peer">
+              <div class="p-2.5 rounded-xl border border-slate-200 bg-white text-center font-bold text-xs peer-checked:bg-blue-600 peer-checked:text-white peer-checked:border-blue-600 transition-all">
+                🔵 En Proceso
+              </div>
+            </label>
+            <label class="cursor-pointer">
+              <input type="radio" name="admin-status-radio" value="Resuelto" class="hidden peer">
+              <div class="p-2.5 rounded-xl border border-slate-200 bg-white text-center font-bold text-xs peer-checked:bg-emerald-600 peer-checked:text-white peer-checked:border-emerald-600 transition-all">
+                🟢 Resuelto
+              </div>
+            </label>
+            <label class="cursor-pointer">
+              <input type="radio" name="admin-status-radio" value="Rechazado" class="hidden peer">
+              <div class="p-2.5 rounded-xl border border-slate-200 bg-white text-center font-bold text-xs peer-checked:bg-rose-600 peer-checked:text-white peer-checked:border-rose-600 transition-all">
+                🔴 Rechazado
+              </div>
+            </label>
+          </div>
+
+          <div>
+            <label for="manage-notes-input" class="block font-bold text-slate-800 text-xs mb-1">
+              Notas de la Cuadrilla / Respuesta Oficial del Municipio:
+            </label>
+            <textarea id="manage-notes-input" rows="2" placeholder="Ej: Se envió brigada de SIDEAPA unidad #14. Reparación completada con éxito..." class="w-full px-3 py-2 bg-white border border-slate-300 rounded-xl text-xs focus:outline-none focus:ring-2 focus:ring-gp-primary/20 focus:border-gp-primary"></textarea>
+          </div>
+        </div>
+
+      </div>
+
+      <!-- Modal Footer -->
+      <div class="bg-slate-50 p-4 border-t border-slate-200 flex items-center justify-between flex-shrink-0">
+        <button onclick="AdminApp.deleteReport()" class="text-rose-600 hover:text-rose-800 text-xs font-semibold px-3 py-2 rounded-lg hover:bg-rose-50 transition-colors flex items-center space-x-1">
+          <i data-lucide="trash-2" class="w-4 h-4"></i>
+          <span>Eliminar Alerta</span>
+        </button>
+
+        <div class="flex items-center space-x-2">
+          <button onclick="AdminApp.showOnMapFromModal()" class="px-3 py-2 rounded-xl text-xs font-semibold bg-white border border-slate-300 hover:bg-slate-100 text-slate-700 transition-colors flex items-center space-x-1">
+            <i data-lucide="map-pin" class="w-3.5 h-3.5"></i>
+            <span>Ver en Mapa</span>
+          </button>
+          <button onclick="AdminApp.saveStatusUpdate()" class="px-4 py-2 rounded-xl text-xs font-bold bg-gp-primary hover:bg-gp-dark text-white transition-colors flex items-center space-x-1 shadow-sm">
+            <i data-lucide="save" class="w-3.5 h-3.5"></i>
+            <span>Guardar Cambios</span>
+          </button>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- ============================================================== -->
+  <!-- MODAL: VISOR DE FOTO COMPLETA                                  -->
+  <!-- ============================================================== -->
+  <div id="modal-photo-viewer" class="modal-backdrop fixed inset-0 z-50 bg-black/90 hidden flex items-center justify-center p-4 cursor-pointer" onclick="this.classList.add('hidden')">
+    <div class="relative max-w-4xl max-h-full">
+      <img id="photo-viewer-img" src="" alt="Foto ampliada" class="max-w-full max-h-[90vh] rounded-2xl object-contain shadow-2xl">
+      <p class="text-white/70 text-xs text-center mt-2">Toca en cualquier parte para cerrar</p>
+    </div>
+  </div>
+
+  <!-- App Scripts -->
+  <script src="/js/api.js"></script>
+  <script src="/js/map.js"></script>
+  <script src="/js/admin.js"></script>
+  <script src="/js/app.js"></script>
+
+  <script>
+    // Initialize Lucide icons on DOM ready
+    document.addEventListener('DOMContentLoaded', () => {
+      lucide.createIcons();
+      App.init();
+    });
+  </script>
+
+</body>
+</html>
+
